@@ -8,7 +8,7 @@ const app = express();
 
 mongoose.connect(keys.mongoDB.dbURI);
 mongoose.connection.once('open', () => {
-    console.log('Connection to mLab estabilished');
+    console.log('Connection to Atlas estabilished');
 });
 
 app.use('/graphql', graphqlHTTP({
