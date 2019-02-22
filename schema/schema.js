@@ -1,8 +1,10 @@
+//  InCo-operate Object Class Structure Eventually 
 const graphql = require('graphql');
 const _ = require('lodash');
 const axios = require('axios');
 const User = require('./models/user');
 
+// GraphQL Res
 const { 
     GraphQLObjectType, 
     GraphQLString, 
@@ -19,14 +21,72 @@ var targets = [
     { name: 'Jake', sport: 'NineNine', id: '4'}
 ]
 
+// Deal with all the Admin Objects that can interact with Mutation of Activities & can manually or through an automated process update Gamification & other Resources
+const AdminType = new GraphQLObjectType ({
+    name: 'Admin',
+    fields: () => ({
+        id: { type: GraphQLID },
+        name: { type: GraphQLString },
+        sport: { type: GraphQLString }
+    })
+})
+
 const UserType = new GraphQLObjectType({
     name: 'User',
     fields: () => ({
         id: { type: GraphQLID },
         name: { type: GraphQLString },
-        authClient: { type: GraphQLList }
+        sport: { type: GraphQLString }
     })
 });
+
+const AvatarType = new GraphQLObjectType ({
+    name: 'Activity',
+    fields: () => ({
+        id: { type: GraphQLID },
+        name: { type: GraphQLString },
+    })
+});
+
+const ActivityType = new GraphQLObjectType({
+    name: 'Activity',
+    fields: () => ({
+        id: { type: GraphQLID },
+        name: { type: GraphQLString },
+    })
+});
+
+const FitStatsType = new GraphQLObjectType({
+    name: 'FitStats',
+    fields: () => ({
+        id: { type: GraphQLString },
+        target: {}
+    })
+});
+
+const GuildTaskType = new GraphQLObjectType ({
+    name: 'GuildTask',
+    fields: () => ({
+        id: { type: GraphQLString },
+        target: {}
+    })
+})
+
+const EnlistmentType = new GraphQLObjectType({
+    name: 'Enlistment',
+    fields: () => ({
+        id: { type: GraphQLString },
+        target: {}
+    })
+});
+
+const GuildType = new GraphQLObjectType({
+    name: 'Guild',
+    fields: () => ({
+        id: { type: GraphQLString },
+        target: {}
+    })
+})
 
 const RootQuery = new GraphQLObjectType({
     name: 'RootQueryType',
@@ -44,7 +104,6 @@ const RootQuery = new GraphQLObjectType({
 const Mutation = new GraphQLObjectType({
     name: 'Mutation',
     fields: {
-        // Generic User who uses none of the SignIn APIs
         addTarget: {
             type: UserType,
             args: {
