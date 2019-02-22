@@ -2,7 +2,7 @@
 const graphql = require('graphql');
 const _ = require('lodash');
 const axios = require('axios');
-// const User = require('./models/user.js');
+const User = require('/models/user.js');
 
 // GraphQL Res
 const { 
