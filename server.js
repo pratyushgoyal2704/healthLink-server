@@ -1,8 +1,13 @@
 const express = require('express');
 const graphqlHTTP = require('express-graphql');
-const schema = require('./schema/schema.js')
-const keys = require('./config/keys.js')
+const bodyParser = require('body-parser');
+
+// const schema = require('./schema/schema.js');
+const keys = require('./config/keys.js');
 const mongoose = require('mongoose');
+
+const graphQlSchema = require('./graphql/schema/index');
+const graphQlResolvers = require('./graphql/resolvers/index');
 
 const app = express();
 
@@ -12,7 +17,8 @@ mongoose.connection.once('open', () => {
 });
 
 app.use('/graphql', graphqlHTTP({
-    schema,
+    schema: graphQlSchema,
+    rootValue: graphQlResolvers,
     graphiql: true
 }));
 
