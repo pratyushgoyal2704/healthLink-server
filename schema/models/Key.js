@@ -4,8 +4,12 @@ const Schema = mongoose.Schema;
 
 const keySchema = new Schema({
     // May be multiple values in future
-    val: {
+    kind: {
         type: String,
+        required: true
+    },
+    value: {
+        type: Object,
         required: true
     }
 });

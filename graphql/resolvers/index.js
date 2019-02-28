@@ -2,8 +2,16 @@ const bcrypt = require('bcryptjs');
 
 const User = require('../../schema/models/User');
 const Stat = require('../../schema/models/Stat');
+const Key = require('../../schema/models/Key');
+const Token = require('../../schema/models/Token');
 const Connection = require('../../schema/models/Connection')
 const Axios = require('axios');
+
+// PREnc
+const {PRE, Delegator, Delegatee, Proxy} = require("../../util/enc/PRE");
+const AES = require("../../util/enc/AES")
+
+require("../../util/mcl-wasm/mcl");
 
 const user = userId => {
     return User.findById(userId)
@@ -51,19 +59,45 @@ module.exports = {
             return bcrypt.hash(args.userInput.password, 12)    
         })
         .then( hashedPassword => {
+            const pre = new PRE();
             console.log('Hashed Password: ', hashedPassword);
-            const user = new User({
-                email: args.userInput.email,
-                password: hashedPassword,
-                username: args.userInput.username,
-                sport: args.userInput.sport,
-                name: args.userInput.name,
-
+            console.log('User input args: ', args);
+            pre.init(args.userInput.password, hashedPassword).then(() => {
+                console.log(33543);
+                const A = new Delegator(pre);
+                const B = new Delegatee(pre);
+                const key = new Key({
+                    kind: "PUBLIC_KEY",
+                    value: B.pk,
+                })
+                console.log('Main Key: ', key);
+                key.save();
+                return(key);
+            }).then((key) => {
+                const user = new User({
+                    email: args.userInput.email,
+                    password: hashedPassword,
+                    username: args.userInput.username,
+                    sport: args.userInput.sport,
+                    name: args.userInput.name,
+                    key: key,
+                });
+                if(args.userInput.clients) {
+                    user.clients = args.userInput.clients;
+                    args.userInput.tokensInput.map( token => {
+                        let tokenToBeSent = new Token({
+                            kind: token.kind,
+                            value: token.value
+                        })
+                        user.tokens.push(tokenToBeSent);
+                    }); 
+                    console.log("TokenInput: ", args.userInput.tokensInput); 
+                }
+                console.log('Saving the following User: ', user);
+                return user.save();
+            }).then( res => {
+                return {...res._doc, _id: res.id};
             });
-            return user.save();
-        })
-        .then( res => {
-            return {...res._doc, _id: res.id};
         })
         .catch( err => {
             console.log('Error: ', err);
@@ -71,8 +105,10 @@ module.exports = {
         })
     },
     createStat: (args) => {
+        date = Date.now().toString()
         const stat = new Stat({
             name: args.statInput.name,
+            date: date,
             description: args.statInput.description,
             value: args.statInput.value,
             holder: '5c72c7444af96d129ddc8017'
@@ -98,6 +134,15 @@ module.exports = {
             console.log('Stat: ', stat);
             console.log('Error saving to Atlas: ', err);
         });
+    },
+    createStats: (args) => {
+        // AAA Describe
+    },
+    deleteStat: (args) => {
+        // AAA Describe
+    },
+    deleteStats: (args) => {
+        // AAA Describe
     },
     syncFit: (args) => {
         // !!! Use the username provided to log that the user synced the Data into the History Object
@@ -126,6 +171,7 @@ module.exports = {
                 console.log('Data to be synced: ', res.bucket[i].dataset[0].point[0].value[0].intVal);
                 let stat = new Stat({
                     name: 'Steps',
+                    date: (timeNow - (timeNow % 86400000)).toString(),
                     description: 'Steps Day: ' + ( 29 - i ) + ' were taken',
                     value: res.bucket[i].dataset[0].point[0].value[0].intVal
                 })
@@ -140,8 +186,10 @@ module.exports = {
             var status = error
             console.log('Error Getting Steps Data from Google Fit: ', status);
         });
+    },
+    createRequest : (args) => {
+
     }
-    
     // createConnection: (args) => {
     //     const connection = new Connection({
 

@@ -50,7 +50,15 @@ const userSchema = new Schema({
         }
     ],
     // type: Number,
-    clients: [String],
+    clients: [
+        {
+            type: String, 
+        }
+    ],
+    key: {
+        type: Schema.Types.ObjectId,
+        ref: 'Key'
+    },
     // retreat: String,
     // blogs: [
     //     {
@@ -113,7 +121,7 @@ const userSchema = new Schema({
     tokens: [
         {
             type: Schema.Types.ObjectId,
-            ref: 'Tokens'
+            ref: 'Token'
         }
     ],
     // messagaes: [
