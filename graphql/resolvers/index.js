@@ -4,7 +4,11 @@ const User = require('../../schema/models/User');
 const Stat = require('../../schema/models/Stat');
 const Key = require('../../schema/models/Key');
 const Token = require('../../schema/models/Token');
-const Connection = require('../../schema/models/Connection')
+const Guild = require('../../schema/models/Guild');
+const Connection = require('../../schema/models/Connection');
+const GuildChallenge = require('../../schema/models/GuildChallenge');
+const FlutterNumber = require('../../schema/models/FlutterNumber');
+const jwt = require('jsonwebtoken');
 const Axios = require('axios');
 
 // PREnc
@@ -51,6 +55,47 @@ module.exports = {
             throw err;
         });
     },
+    users: (req) => {
+        const users = [];
+        // if(!req.isAuth) {
+        //     throw new Error('Unauthenticated!')
+        // }
+        return User.find().then( usersAll => {
+            usersAll.map( user => {
+                users.push(user);
+            })
+        }).then(() => {
+            if(users.length !== 0){
+                return users;
+            }
+            else throw err;
+        }).catch(err => {
+            console.log('Captain, Error getting all the users: ', err);
+            throw err;
+        });
+    },
+    syncFlutterOne: (args) => {
+        const steps = new FlutterNumber({
+            steps: args.syncFlutterOneInput.steps
+        });
+        steps.save();
+        return 0;
+    },
+    syncFlutterTwo: (args) => {
+        const steps = new FlutterNumber({
+            steps: args.syncFlutterTwoInput.steps
+        });
+        steps.save();
+        return 0;
+    },
+    guildChallenges: (req) => {
+        if(!req.isAuth) {
+            throw new Error('Unauthenticated!')
+        }
+        return GuildChallenge.findOne( {$elemMatch: {holderNames: args.holderName}}).then(() => {
+            console.log('Found that Challenge');
+        });
+    },
     createUser: (args) => {
         return User.findOne({ $or: [{ email: args.userInput.email }, {username: args.userInput.username}]}).then( user => {
             if(user){
@@ -63,7 +108,7 @@ module.exports = {
             console.log('Hashed Password: ', hashedPassword);
             console.log('User input args: ', args);
             pre.init(args.userInput.password, hashedPassword).then(() => {
-                console.log(33543);
+                // console.log(33543);
                 const A = new Delegator(pre);
                 const B = new Delegatee(pre);
                 const key = new Key({
@@ -104,14 +149,17 @@ module.exports = {
             throw err;
         })
     },
-    createStat: (args) => {
+    createStat: (args, req) => {
+        if(!req.isAuth) {
+            throw new Error('Unauthenticated!')
+        }
         date = Date.now().toString()
         const stat = new Stat({
             name: args.statInput.name,
             date: date,
             description: args.statInput.description,
             value: args.statInput.value,
-            holder: '5c72c7444af96d129ddc8017'
+            holder: req.userId,
         });
         let createdStat; 
         return stat.save()
@@ -119,7 +167,7 @@ module.exports = {
             console.log('Stat saved: ', stat);
             console.log('Saved Stat to Atlas: ', res);
             createdStat = {...res._doc, _id: res._doc._id.toString(), holder: user.bind(this, res._doc.holder) };
-            return User.findById('5c72c7444af96d129ddc8017')
+            return User.findById(req.userId);
         }).then(user => {
             if(!user) {
                 throw new Error('No User Found')
@@ -135,6 +183,69 @@ module.exports = {
             console.log('Error saving to Atlas: ', err);
         });
     },
+    updateStat: (args, req) => {
+        if(!req.isAuth) {
+            throw new Error('Unauthenticated!')
+        }
+        const todayDate = new Date.toLocaleDateString();
+        return Stat.findOne({ $and: [{ date: todayDate }, { username: req.username }, { name: args.updateStatInput.name }]}).then(stat => {
+            if( !stat ) {
+                throw new Error('Stat not found');
+            }
+            stat.value = args.updateStatInput.value;
+            stat.save();
+        })
+    },
+    createChallenge: (args) => {
+        if (args.createChallengeInput.kind === 'GUILD') {
+            // GUILD TYPE CHALLENGE
+            const challenge = new GuildChallenge({
+                mission: args.createChallengeInput.mission,
+                holderIDs: args.createChallengeInput.holderIDs,
+                holderNames: args.createChallengeInput.holderNames
+            })
+            challenge.save();
+        }
+        else {
+            // INDIVIDUAL TYPE CHALLENGE
+        }
+    },
+    sendRequest: (args, req) => {
+        if(!req.isAuth) {
+            throw new Error('Unauthenticated!')
+        }
+        return User.findOne({username: args.sendRequestInput.reciever}).then( user => {
+            if(user){
+                throw new Error('Captain!, error getting user for this request');
+            }
+            const cReq = new Request({
+                sender: args.sendRequestInput.sender,
+                receiver: args.sendRequestInput.receiver,
+                kind: args.sendRequestInput.kind,
+                status: 1,
+            }) 
+            cReq.save();
+        });
+    },
+    // Accept request estabilishes a new connection
+    acceptRequest: (args, req) => {
+        if(!req.isAuth) {
+            throw new Error('Unauthenticated!')
+        }
+        return Request.findOne({ $and: [{ sender: args.acceptRequest.sender }, {reciever: args.acceptRequest.reciever}]}).then( request => {
+            const reKey = new Key({
+                kind: 'reKey',
+                value: args.reKey.value
+            });
+            const connect = new Connection({
+                reKey: reKey,
+                resKey: args.acceptRequestInput.reskey,
+                holder: args.acceptRequestInput.userId,
+            });
+            reKey.save();
+            connect.save();
+        });
+    },
     createStats: (args) => {
         // AAA Describe
     },
@@ -144,7 +255,10 @@ module.exports = {
     deleteStats: (args) => {
         // AAA Describe
     },
-    syncFit: (args) => {
+    syncFit: (args, req) => {
+        if(!req.isAuth) {
+            throw new Error('Unauthenticated!')
+        }
         // !!! Use the username provided to log that the user synced the Data into the History Object
         const fitSet = {};
         const timeNow = Date.now();
@@ -187,8 +301,41 @@ module.exports = {
             console.log('Error Getting Steps Data from Google Fit: ', status);
         });
     },
+    login: async ({email, password}) => {
+        const user = await User.findOne({email : email});
+        if (!user) {
+            throw new Error('User does not exist!');
+        }
+        const isEqual = await bcrypt.compare(password, user.password);
+        if(!isEqual) {
+            throw new Error('Invalid Password');
+        }
+        const token = jwt.sign({userId: user.id, email: user.email}, 'brooklynninenine', {
+            expiresIn: '100hr'
+        })
+        return { userId: user.id , token: token, tokenExpiration: 100 }
+    },
     createRequest : (args) => {
 
+    },
+    createGuild: (args) => {
+        var members = [];
+        args.createGuildInput.map( username => {
+            return User.findOne({username: username}).then( user => {
+                if(!user) {
+                    throw new Error('Usernames of one or more participants not found!');
+                }
+                members.push(username);
+            }).then( () => {
+                const guild = new Guild({
+                    name: args.createGuildInput.name,
+                    members: args.createGuildInput.members,
+                });
+                return guild.save();
+            }).catch( err => {
+                throw(err);
+            });
+        })
     }
     // createConnection: (args) => {
     //     const connection = new Connection({

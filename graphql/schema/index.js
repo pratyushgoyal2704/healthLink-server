@@ -31,6 +31,22 @@ module.exports = buildSchema(`
         holder: User!
     }
 
+    type Guild {
+        _id: ID!
+        name: String!
+        members: [String!]!
+        nom: Int!
+        challenges: [Challenge!]
+    }
+
+    type Challenge {
+        kind: String!
+        sender: User!
+        receiver: User!
+        status: [Int!]!
+        timeOut: Int!
+    }
+
     type Connection {
         _id: ID!
         name: String!
@@ -62,6 +78,15 @@ module.exports = buildSchema(`
         holder: User!
     }
 
+    type GuildChallenge {
+        _id: ID!
+        guildName: String!
+        kind: String!
+        mission: String!
+        holderIDs: [String!]!
+        holderNames: [String!]!
+    }
+
     input KeyInput {
         kind: String!
         value: String!
@@ -72,6 +97,12 @@ module.exports = buildSchema(`
         lastInput: String!
         lastSynced: String!
         holder: UserInput!
+    }
+
+    input CreateGuildInput {
+        name: String!
+        members: [UserInput!]!
+        nom: Int!
     }
 
     input UserInput {
@@ -85,7 +116,7 @@ module.exports = buildSchema(`
     }
 
     input StatInput {
-        day: String!
+        date: String!
         name: String!
         description: String!
         value: String!
@@ -119,7 +150,7 @@ module.exports = buildSchema(`
         _id: ID!
         kind: String!
         sender: String!
-        Reciever: String!
+        reciever: String!
     }
 
     input CompleteRequestInput {
@@ -133,7 +164,6 @@ module.exports = buildSchema(`
     }
 
     input SyncFitInput {
-        username: String!
         token: TokenInput!
     }
 
@@ -145,15 +175,46 @@ module.exports = buildSchema(`
         lastInput: String
     }
 
+    input UpdateStatInput {
+        name: String!
+        value: Int!
+    }
+
+    input CreateChallengeInput {
+        _id: ID!
+        kind: String!
+        mission: String!
+        holderID: String!
+        holderName: String!
+    }
+
+    input CreateGuildChallengeInput {
+        _id: ID!
+        guildName: String!
+        kind: String!
+        mission: String!
+        holderIDs: [String!]!
+        holderNames: [String!]!
+    }
+
+    input SyncFlutterOneInput {
+        steps: Int!
+    }
+
+    input SyncFlutterTwoInput {
+        steps: Int!
+    }
+
     type AuthData {
         userId: ID!
-        token: Key!
+        token: String!
         tokenExpiration: Int!
     }
 
     type RootQuery {
         stats: [Stat!]!
-        requests: [Request!]! 
+        requests: [Request!]!
+        users: [User!]!
         login(email: String!, password: String!): AuthData!
     }
 
@@ -164,7 +225,12 @@ module.exports = buildSchema(`
         completeRequest(completeRequestInput: CompleteRequestInput): Request
         deleteRequest(deleteRequestInput: DeleteRequestInput): Request
         syncFit(syncFitInput: SyncFitInput): [Stat!]
-        pushIntoHistory(pushIntoHistoryInput: PushIntoHistoryInput): History
+        createGuild(createGuildInput: CreateGuildInput): Guild!
+        updateStat(updateStatInput: UpdateStatInput): Stat!
+        createChallenge(createChallengeInput: CreateChallengeInput): Challenge!
+        createGuildChallenge(createGuildChallengeInput: CreateGuildChallengeInput): GuildChallenge!
+        syncFlutterOne(syncFlutterOneInput: SyncFlutterOneInput): Int!
+        syncFlutterTwo(syncFlutterTwoInput: SyncFlutterTwoInput): Int!
     }
 
     schema {
